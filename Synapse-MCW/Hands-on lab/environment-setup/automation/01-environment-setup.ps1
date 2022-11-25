@@ -25,6 +25,7 @@ $subscriptionId = (Get-AzContext).Subscription.Id
 $global:logindomain = (Get-AzContext).Tenant.Id
 
 $templatesPath = ".\templates"
+$dataflowPath = ".\dataflow"
 $datasetsPath = ".\datasets"
 $pipelinesPath = ".\pipelines"
 $sqlScriptsPath = ".\sql"
@@ -136,7 +137,7 @@ catch
 
 try
 {
-   $result = Execute-SQLScriptFile-SqlCmd -SQLScriptsPath $sqlScriptsPath -WorkspaceName $workspaceName -SQLPoolName $sqlPoolName -SQLUserName $sqlUserName -SQLPassword $sqlPassword -FileName "03_Create_Sales _Table" -Parameters $params
+   $result = Execute-SQLScriptFile-SqlCmd -SQLScriptsPath $sqlScriptsPath -WorkspaceName $workspaceName -SQLPoolName $sqlPoolName -SQLUserName $sqlUserName -SQLPassword $sqlPassword -FileName "03_CreateSalesTable" -Parameters $params
 }
 catch 
 {
@@ -145,7 +146,7 @@ catch
 
 try
 {
-   $result = Execute-SQLScriptFile-SqlCmd -SQLScriptsPath $sqlScriptsPath -WorkspaceName $workspaceName -SQLPoolName $sqlPoolName -SQLUserName $sqlUserName -SQLPassword $sqlPassword -FileName "04_Create_Customer_Table" -Parameters $params
+   $result = Execute-SQLScriptFile-SqlCmd -SQLScriptsPath $sqlScriptsPath -WorkspaceName $workspaceName -SQLPoolName $sqlPoolName -SQLUserName $sqlUserName -SQLPassword $sqlPassword -FileName "04_CreateCustomerTable" -Parameters $params
 }
 catch 
 {
@@ -154,7 +155,7 @@ catch
 
 try
 {
-   $result = Execute-SQLScriptFile-SqlCmd -SQLScriptsPath $sqlScriptsPath -WorkspaceName $workspaceName -SQLPoolName $sqlPoolName -SQLUserName $sqlUserName -SQLPassword $sqlPassword -FileName "05_Create_Campaign_Analytics_Table" -Parameters $params
+   $result = Execute-SQLScriptFile-SqlCmd -SQLScriptsPath $sqlScriptsPath -WorkspaceName $workspaceName -SQLPoolName $sqlPoolName -SQLUserName $sqlUserName -SQLPassword $sqlPassword -FileName "05_CreateCampaignAnalyticsTable" -Parameters $params
 }
 catch 
 {

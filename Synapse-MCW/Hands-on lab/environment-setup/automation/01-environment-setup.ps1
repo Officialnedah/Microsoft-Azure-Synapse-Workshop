@@ -113,6 +113,7 @@ $params = @{
         "PASSWORD" = $sqlPassword
         "DATALAKESTORAGEKEY" = $dataLakeAccountKey
         "DATALAKESTORAGEACCOUNTNAME" = $dataLakeAccountName
+	"POWERBINEWSTUFF" = $VARABLEPOINTINGTOVALUETOUSEHERE
 }
 
 try
@@ -133,6 +134,32 @@ catch
     write-host $_.exception
 }
 
+try
+{
+   $result = Execute-SQLScriptFile-SqlCmd -SQLScriptsPath $sqlScriptsPath -WorkspaceName $workspaceName -SQLPoolName $sqlPoolName -SQLUserName $sqlUserName -SQLPassword $sqlPassword -FileName "03_Create_Sales _Table" -Parameters $params
+}
+catch 
+{
+    write-host $_.exception
+}
+
+try
+{
+   $result = Execute-SQLScriptFile-SqlCmd -SQLScriptsPath $sqlScriptsPath -WorkspaceName $workspaceName -SQLPoolName $sqlPoolName -SQLUserName $sqlUserName -SQLPassword $sqlPassword -FileName "04_Create_Customer_Table" -Parameters $params
+}
+catch 
+{
+    write-host $_.exception
+}
+
+try
+{
+   $result = Execute-SQLScriptFile-SqlCmd -SQLScriptsPath $sqlScriptsPath -WorkspaceName $workspaceName -SQLPoolName $sqlPoolName -SQLUserName $sqlUserName -SQLPassword $sqlPassword -FileName "05_Create_Campaign_Analytics_Table" -Parameters $params
+}
+catch 
+{
+    write-host $_.exception
+}
 
 $result
 
@@ -161,8 +188,14 @@ Wait-ForOperation -WorkspaceName $workspaceName -OperationId $result.operationId
 Write-Information "Create data sets"
 
 $datasets = @{
-        asamcw_product_asa = $sqlPoolName.ToLower()
+        asamcw_campaignanalytics_asa = $sqlPoolName.ToLower()
+	asamcw_campaignanalytics_csv = $dataLakeAccountName
+	asamcw_customerinfo_asa = $sqlPoolName.ToLower()
+	asamcw_customerinfo_csv = $dataLakeAccountName
+	asamcw_product_asa = $sqlPoolName.ToLower()
         asamcw_product_csv = $dataLakeAccountName
+	asamcw_sale_asa = $sqlPoolName.ToLower()
+	asamcw_sales_parquet = $dataLakeAccountName
         asamcw_wwi_salesmall_workload1_asa = "$($sqlPoolName.ToLower())_workload01"      
         asamcw_wwi_salesmall_workload2_asa = "$($sqlPoolName.ToLower())_workload02" 
 }
@@ -174,15 +207,35 @@ foreach ($dataset in $datasets.Keys)
         Wait-ForOperation -WorkspaceName $workspaceName -OperationId $result.operationId
 }
 
+Write-Information "Mapping dataflows"
+
+$params = @{
+        "STORAGELINKEDSERVICENAME" = $blobStorageAccountName
+
+$dataflow = @{
+        map_sales_dataflow = "ASAMCW_Exercise_2_2018_and_2019_Sales"
+	map_campaign_dataflow = "ASAMCW_Exercise_2_Campaign_Analytics_Data"
+}
+
+foreach ($dataflow in $dataflow.Keys) 
+{
+        Write-Information "Creating dataflow $($dataflow)"
+        $result = Create-Dataflow -DataflowPath $dataflowPath -WorkspaceName $workspaceName -Name $dataflow -LinkedServiceName $dataflow[$dataflow]
+        Wait-ForOperation -WorkspaceName $workspaceName -OperationId $result.operationId
+}
+
 Write-Information "Create pipelines"
 
 $params = @{
         "STORAGELINKEDSERVICENAME" = $blobStorageAccountName
 }
 $workloadPipelines = [ordered]@{
-        copy_products_pipeline = "ASAMCW - Exercise 2 - Copy Product Information"
+        execute_campaigns_pipeline = "ASAMCW - Exercise 2 - Copy Campaign Analytics Data"
+	copy_customers_pipeline = "ASAMCW - Exercise 2 - Copy Customer Information"
+	copy_products_pipeline = "ASAMCW - Exercise 2 - Copy Product Information"
         execute_business_analyst_queries = "ASAMCW - Exercise 7 - ExecuteBusinessAnalystQueries"
         execute_data_analyst_and_ceo_queries = "ASAMCW - Exercise 7 - ExecuteDataAnalystAndCEOQueries"
+	execute_sales_pipeline = "ASAMCW_Exercise_2_2018_and_2019_Sales"
 }
 
 foreach ($pipeline in $workloadPipelines.Keys) 
@@ -389,9 +442,20 @@ $asaArtifacts = [ordered]@{
         "asamcw_wwi_salesmall_workload2_asa" = "datasets"
         "asamcw_product_csv" = "datasets"
         "asamcw_product_asa" = "datasets"
-        "ASAMCW - Exercise 2 - Copy Product Information" = "pipelines"
+	"asamcw_campaignanalytics_asa" = "datasets"
+	"asamcw_campaignanalytics_csv" = "datasets"
+	"asamcw_customerinfo_asa" = "datasets"
+	"asamcw_customerinfo_csv" = "datasets"
+	"asamcw_sale_asa" = "datasets"
+	"asamcw_sales_parquet" = "datasets" = "dataflows"
+	"ASAMCW_Exercise_2_2018_and_2019_Sales" = "dataflows"
+	"ASAMCW_Exercise_2_Campaign_Analytics_Data"
+        "ASAMCW - Exercise 2 - Copy Campaign Analytics Data" = "pipelines"
+	"ASAMCW - Exercise 2 - Copy Customer Information" = "pipelines"
+	"ASAMCW - Exercise 2 - Copy Product Information" = "pipelines"
         "ASAMCW - Exercise 7 - ExecuteBusinessAnalystQueries" = "pipelines"
         "ASAMCW - Exercise 7 - ExecuteDataAnalystAndCEOQueries" = "pipelines"
+	"ASAMCW_Exercise_2_2018_and_2019_Sales" = "pipelines"
         "$($keyVaultName)" = "linkedServices"
         "$($dataLakeAccountName)" = "linkedServices"
         "$($blobStorageAccountName)" = "linkedServices"

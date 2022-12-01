@@ -25,7 +25,7 @@ $subscriptionId = (Get-AzContext).Subscription.Id
 $global:logindomain = (Get-AzContext).Tenant.Id
 
 $templatesPath = ".\templates"
-$dataflowPath = ".\dataflow"
+$dataflowPath = ".\dataflows"
 $datasetsPath = ".\datasets"
 $pipelinesPath = ".\pipelines"
 $sqlScriptsPath = ".\sql"
@@ -137,7 +137,7 @@ catch
 
 try
 {
-   $result = Execute-SQLScriptFile-SqlCmd -SQLScriptsPath $sqlScriptsPath -WorkspaceName $workspaceName -SQLPoolName $sqlPoolName -SQLUserName $sqlUserName -SQLPassword $sqlPassword -FileName "03_CreateSalesTable" -Parameters $params
+   $result = Execute-SQLScriptFile-SqlCmd -SQLScriptsPath $sqlScriptsPath -WorkspaceName $workspaceName -SQLPoolName $sqlPoolName -SQLUserName $sqlUserName -SQLPassword $sqlPassword -FileName "03_CreateSalesTable_m" -Parameters $params
 }
 catch 
 {
@@ -146,7 +146,7 @@ catch
 
 try
 {
-   $result = Execute-SQLScriptFile-SqlCmd -SQLScriptsPath $sqlScriptsPath -WorkspaceName $workspaceName -SQLPoolName $sqlPoolName -SQLUserName $sqlUserName -SQLPassword $sqlPassword -FileName "04_CreateCustomerTable" -Parameters $params
+   $result = Execute-SQLScriptFile-SqlCmd -SQLScriptsPath $sqlScriptsPath -WorkspaceName $workspaceName -SQLPoolName $sqlPoolName -SQLUserName $sqlUserName -SQLPassword $sqlPassword -FileName "04_CreateCustomerTable_c" -Parameters $params
 }
 catch 
 {
@@ -155,7 +155,7 @@ catch
 
 try
 {
-   $result = Execute-SQLScriptFile-SqlCmd -SQLScriptsPath $sqlScriptsPath -WorkspaceName $workspaceName -SQLPoolName $sqlPoolName -SQLUserName $sqlUserName -SQLPassword $sqlPassword -FileName "05_CreateCampaignAnalyticsTable" -Parameters $params
+   $result = Execute-SQLScriptFile-SqlCmd -SQLScriptsPath $sqlScriptsPath -WorkspaceName $workspaceName -SQLPoolName $sqlPoolName -SQLUserName $sqlUserName -SQLPassword $sqlPassword -FileName "05_CreateCampaignAnalyticsTable_w" -Parameters $params
 }
 catch 
 {
@@ -220,9 +220,16 @@ $dataflow = @{
 
 foreach ($dataflow in $dataflow.Keys) 
 {
-        Write-Information "Creating dataflow $($dataflow)"
-        $result = Create-Dataflow -DataflowPath $dataflowPath -WorkspaceName $workspaceName -Name $dataflow -LinkedServiceName $dataflow[$dataflow]
+     try
+    {
+        Write-Information "Creating dataflow $($workloadDataflows[$dataflow])"
+        $result = Create-Dataflow -DataflowsPath $dataflowsPath -WorkspaceName $workspaceName -Name $workloadDataflows[$dataflow] -FileName $workloadDataflows[$dataflow] -Parameters $params
         Wait-ForOperation -WorkspaceName $workspaceName -OperationId $result.operationId
+    }
+    catch
+    {
+        write-host $_.exception;
+    }
 }
 
 Write-Information "Create pipelines"
@@ -357,7 +364,7 @@ $result = (Invoke-SqlCmd -Query $schemaQuery -ConnectionString $sqlConnectionStr
 if ($result -eq 1){Write-Host 'Schema wwi_mcw verified'}else{Write-Host 'Schema wwi_mcw not found' -ForegroundColor Red;$validEnvironment = $false}
 
 Write-Information "Verifying the existence of the SQL Pool Tables..."
-$sqlTables = 'Product', 'ASAMCWMLModelExt','ASAMCWMLModel'
+$sqlTables = 'Product', 'ASAMCWMLModelExt','ASAMCWMLModel','SaleSmall','CustomerInfo','CampaignAnalytics'
 foreach($table in $sqlTables)
 {
         $tblQuery = "select count(name) as Count from sys.tables where name = '$($table)' and SCHEMA_NAME(schema_id) = 'wwi_mcw'"
@@ -448,9 +455,9 @@ $asaArtifacts = [ordered]@{
 	"asamcw_customerinfo_asa" = "datasets"
 	"asamcw_customerinfo_csv" = "datasets"
 	"asamcw_sale_asa" = "datasets"
-	"asamcw_sales_parquet" = "datasets" = "dataflows"
+	"asamcw_sales_parquet" = "datasets"
 	"ASAMCW_Exercise_2_2018_and_2019_Sales" = "dataflows"
-	"ASAMCW_Exercise_2_Campaign_Analytics_Data"
+	"ASAMCW_Exercise_2_Campaign_Analytics_Data" = "dataflows"
         "ASAMCW - Exercise 2 - Copy Campaign Analytics Data" = "pipelines"
 	"ASAMCW - Exercise 2 - Copy Customer Information" = "pipelines"
 	"ASAMCW - Exercise 2 - Copy Product Information" = "pipelines"
